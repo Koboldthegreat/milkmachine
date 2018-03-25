@@ -42,16 +42,28 @@ class StandingWave(Wave):
 
 
 class SoundWave(Wave):
-    def __init__(self, sound, *args):
-        self.sound = sound
+    def __init__(self, sound_data, *args):
+        self.sound_data = sound_data
         self.last = 0
+        self.playing = False
         super().__init__(*args)
-
-    def update(self, dt):
-        self.t += int(dt * sound.SAMPLE_SIZE)
-        self.array = np.append(self.array, self.sound[self.last:self.t] * 100)
+        self.t = len(self.sound_data)
         self.last = self.t
+        self.plast = 0
 
+    def update(self, dt, keys):
+        if self.t < len(self.sound_data):
+            self.t += int(dt * sound.SAMPLE_SIZE)
+            self.array = np.append(self.array, self.sound_data[self.last:self.t] * 100)
+            self.last = self.t
+        if self.plast < len(self.sound_data)-1:
+            sound.play(self.sound_data[self.plast:])
+            self.plast = len(self.sound_data)-1
+
+    def play(self, tone):
+        if self.t >= len(self.sound_data):
+            print(tone % 25)
+            self.sound_data = np.append(self.sound_data, sound.artone(np.array([tone % 25]*(sound.SAMPLE_SIZE//4)), sound.SAMPLE_SIZE))
 
 class KeyWave(Wave):
     def update(self, dt, down):
@@ -65,16 +77,19 @@ class MainWindow(pyglet.window.Window):
         self.label.x = 0
         self.label.y = self.height - 10
         self.fps_display = pyglet.clock.ClockDisplay()
-        self.wave = KeyWave(self)
+        self.wave = SoundWave(sound.artone(np.array([1]*(sound.SAMPLE_SIZE//10)), sound.SAMPLE_SIZE), self)
         self.pause = False
         self.d = False
         self.line = {"width": 1, "color": (1.0, 1.0, 1.0)}
+        self.keys = pyglet.window.key.KeyStateHandler()
+        self.push_handlers(self.keys)
 
     def on_key_press(self, symbol, modifiers):
-        if symbol == pyglet.window.key.P:
-            self.pause = not self.pause
-        elif symbol == pyglet.window.key.R:
-            self.d = not self.d
+        #if symbol == pyglet.window.key.P:
+        #    self.pause = not self.pause
+        #elif symbol == pyglet.window.key.R:
+        #    pass
+        self.wave.play(symbol)
 
     def on_draw(self):
         glLineWidth(self.line["width"])
@@ -86,7 +101,7 @@ class MainWindow(pyglet.window.Window):
 
     def update(self, dt):
         if not self.pause:
-            self.wave.update(dt, self.d)
+            self.wave.update(dt, self.keys)
 
     @staticmethod
     def start():

@@ -23,7 +23,12 @@ def stepsmooth(ar, l):
     return re/l
 
 def reflect(x, l):
+    fs = 44100
     return np.append(x[:l], x[l:] + x[:-l])
+
+def play(sounddata):
+    fs = 44100
+    sd.Stream.write(sounddata)
 
 def get_test():
     fs = 44100
@@ -43,5 +48,6 @@ def get_test():
 
     sd.play(signal, fs)
     return signal
+sd.default.samplerate = 44100
 
 

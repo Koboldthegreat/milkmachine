@@ -45,17 +45,19 @@ class SoundStandWave(Wave):
     def update(self, dt):
         dt = dt
         self.t += dt
-        freq = 1
+        freq = 4
         w = 2*np.pi*freq
-        self.array = np.append(self.array, 100*np.sin(w*np.linspace(self.last, self.t, num=dt*self.window_width//self.xstep, endpoint=False)))
+
+        self.array = np.append(self.array, 100*np.sin(w*np.linspace(self.last, self.t, num=dt*self.window_width/self.xstep, endpoint=False)))
+
         if len(self.array) > self.window_width // self.xstep:
             self.reflected[:] = -self.array[-2 * self.window_width//self.xstep-1:
                                          -self.window_width // self.xstep-1]
             self.reflected[:] = self.reflected[::-1]
-        if len(self.array) > 2*self.window_width // self.xstep:
-            self.reflected[:] -= self.array[-3 * self.window_width//self.xstep-1:
-                                         -2*self.window_width//self.xstep-1]
-            pass
+
+        #if len(self.array) > 2*self.window_width // self.xstep:
+        #    self.reflected[:] += self.array[-3 * self.window_width//self.xstep-1:
+        #                                 -2*self.window_width//self.xstep-1]
 
         self.last = self.t
 

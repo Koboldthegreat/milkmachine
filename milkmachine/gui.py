@@ -10,18 +10,17 @@ class Sprite():
         self.xpos = window.width
         self.ypos = window.height / 2
 
-
 class Wave(Sprite):
-    def __init__(self, window):
+    def __init__(self, window, xstep=4):
         super().__init__(window)
-        self.xstep = 4
-
+        self.xstep = xstep
         self.reflected = np.zeros(self.window_width // self.xstep)
         self.array = np.zeros(3 * self.window_width // self.xstep)
         self.t = 0
+        self.last = self.t
 
     def draw(self):
-        total = self.array[-self.window_width // self.xstep:]
+        total = self.array[-self.window_width // self.xstep:] + self.reflected
         for i in range(0, len(total)-1):
             glBegin(GL_LINES)
             glVertex2f(self.xpos - self.xstep * i,
@@ -29,7 +28,6 @@ class Wave(Sprite):
             glVertex2f(self.xpos - self.xstep * (i + 1),
                        total[-i-2] + self.ypos)
             glEnd()
-
 
 class StandingWave(Wave):
     def update(self, dt):
@@ -39,6 +37,21 @@ class StandingWave(Wave):
             self.reflected = -self.array[-2 * self.window_width // self.xstep:
                                          -self.window_width // self.xstep]
             self.reflected = self.reflected[::-1]
+
+class SoundStandWave(Wave):
+    def __init__(self, window):
+        super().__init__(window, xstep=1)
+
+    def update(self, dt):
+        self.t += dt
+        freq = 3
+        w = 2*np.pi*freq
+        self.array = np.append(self.array, 100*np.sin(w*np.linspace(self.last, self.t, num=dt*(np.ceil(self.window_width/self.xstep))+1.2, endpoint=False)))
+        if len(self.array) > self.window_width // self.xstep:
+            self.reflected[:] = -self.array[-2 * self.window_width // self.xstep:
+                                         -self.window_width // self.xstep]
+            self.reflected[:] = self.reflected[::-1]
+        self.last = self.t
 
 
 class SoundWave(Wave):
@@ -53,7 +66,7 @@ class SoundWave(Wave):
 
     def update(self, dt, keys):
         if self.t < len(self.sound_data):
-            self.t += int(dt * sound.SAMPLE_SIZE)
+            self.t += int(dt * sound.SAMPLE_FREQ)
             self.array = np.append(self.array, self.sound_data[self.last:self.t] * 100)
             self.last = self.t
         if self.plast < len(self.sound_data)-1:
@@ -63,7 +76,7 @@ class SoundWave(Wave):
     def play(self, tone):
         if self.t >= len(self.sound_data):
             print(tone % 25)
-            self.sound_data = np.append(self.sound_data, sound.artone(np.array([tone % 25]*(sound.SAMPLE_SIZE//4)), sound.SAMPLE_SIZE))
+            self.sound_data = np.append(self.sound_data, sound.artone(np.array([tone % 25]*(sound.SAMPLE_FREQ//4)), sound.SAMPLE_FREQ))
 
 class KeyWave(Wave):
     def update(self, dt, down):
@@ -77,7 +90,7 @@ class MainWindow(pyglet.window.Window):
         self.label.x = 0
         self.label.y = self.height - 10
         self.fps_display = pyglet.clock.ClockDisplay()
-        self.wave = SoundWave(sound.artone(np.array([1]*(sound.SAMPLE_SIZE//10)), sound.SAMPLE_SIZE), self)
+        self.wave = SoundStandWave(self)
         self.pause = False
         self.d = False
         self.line = {"width": 1, "color": (1.0, 1.0, 1.0)}
@@ -85,11 +98,12 @@ class MainWindow(pyglet.window.Window):
         self.push_handlers(self.keys)
 
     def on_key_press(self, symbol, modifiers):
-        #if symbol == pyglet.window.key.P:
-        #    self.pause = not self.pause
+        if symbol == pyglet.window.key.P:
+            self.pause = not self.pause
         #elif symbol == pyglet.window.key.R:
         #    pass
-        self.wave.play(symbol)
+        #self.wave.play(symbol)
+        pass
 
     def on_draw(self):
         glLineWidth(self.line["width"])
@@ -101,7 +115,7 @@ class MainWindow(pyglet.window.Window):
 
     def update(self, dt):
         if not self.pause:
-            self.wave.update(dt, self.keys)
+            self.wave.update(dt)
 
     @staticmethod
     def start():
@@ -111,6 +125,7 @@ class MainWindow(pyglet.window.Window):
         return window
 
     def on_resize(self,width, height):
+        self.wave.__init__(self)
         glViewport(0, 0, width, height)
         glMatrixMode(gl.GL_PROJECTION)
         glLoadIdentity()

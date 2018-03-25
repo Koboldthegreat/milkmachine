@@ -1,7 +1,7 @@
 import sounddevice as sd
 import numpy as np
 
-SAMPLE_SIZE = 44100
+SAMPLE_FREQ = 44100
 
 def gaussian (x, mu, sig):
     return np.exp(-np.power(x-mu, 2.) / (2* np.power(sig, 2.)))

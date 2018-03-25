@@ -1,1 +1,1 @@
-- [] setup streaming to audiodevice
+- [ ] setup streaming to audiodevice
